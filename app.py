@@ -1228,12 +1228,24 @@ def init_func(argv):
     APP.router.add_post("/api/messages", messages)
     return APP
 
+def init_func():
+    """Initialize the aiohttp application for Azure"""
+    app = web.Application()
+    app.router.add_post('/api/messages', messages)
+    app.router.add_get('/', lambda req: web.Response(text="Bot is running"))
+    
+    # Health endpoint
+    async def health(request):
+        return web.json_response({
+            "status": "healthy",
+            "bot_configured": bool(DefaultConfig.APP_ID),
+            "databricks_configured": bool(DefaultConfig.DATABRICKS_TOKEN),
+            "app_type": DefaultConfig.APP_TYPE
+        })
+    
+    app.router.add_get('/health', health)
+    return app
 
-if __name__ == "__main__":
-    APP = init_func(None)
-    try:
-        HOST = "0.0.0.0"
-        PORT = int(os.environ.get("PORT", CONFIG.PORT))
-        web.run_app(APP, host=HOST, port=PORT)
-    except Exception as error:
-        raise error
+if __name__ == '__main__':
+    app = init_func()
+    web.run_app(app, host='0.0.0.0', port=DefaultConfig.PORT)
